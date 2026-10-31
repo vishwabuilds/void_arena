@@ -1637,28 +1637,20 @@ const crScale=c=>.45+.55*Math.max(0,c.hp)/c.mhp,crHalf=c=>Math.max(14,CR_SZ/2*cr
 const drawCr=(g,c,al,glow)=>{const sz=CR_SZ*crScale(c),k=sz/344,fl=c.fl>0,sh=fl?R(-1.5,1.5):0;
  g.save();g.globalAlpha=al;g.translate(c.x+sh,c.y+sh);g.scale(k,k);g.translate(-192,-192);g.lineJoin='round';g.lineWidth=Math.min(40,2.4/k);
  g.shadowColor=OR;g.shadowBlur=glow?14:0;g.strokeStyle=fl?'#fff':OR;
- const F=(p,col)=>{g.fillStyle=fl?'#ffd9b3':col;g.fill(p);g.stroke(p)};
- F(CP.o,'#7a3b00');F(CP.f,'#1a0b02');F(CP.i,'#4a2300');F(CP.m,'#c96a00');F(CP.a,'#c96a00');F(CP.b,'#c96a00');
+ for(const q of[CP.o,CP.f,CP.i,CP.m,CP.a,CP.b])g.stroke(q);
  g.restore()};
 
 // ---- pickups: candy + bandage ----
-const drawTr=(g,q,t,al)=>{g.save();g.globalAlpha=al;g.translate(q.x,q.y+Math.sin(t*4+q.x)*2);g.shadowColor=OR;g.shadowBlur=14;g.lineWidth=2;g.lineJoin='round';g.strokeStyle=OR;
- if(q.k==='cd'){g.rotate(Math.sin(t*3+q.x)*.3);
-  g.beginPath();g.moveTo(-8,0);g.lineTo(-15,-6);g.lineTo(-15,6);g.closePath();g.moveTo(8,0);g.lineTo(15,-6);g.lineTo(15,6);g.closePath();g.fillStyle='rgba(255,138,31,.4)';g.fill();g.stroke();
-  g.beginPath();g.ellipse(0,0,9,6.5,0,0,6.2832);g.fillStyle='#ffd23d';g.fill();g.stroke();
-  g.shadowBlur=0;g.strokeStyle='#7a3b00';g.beginPath();g.moveTo(-3,-6);g.quadraticCurveTo(0,0,-3,6);g.moveTo(3,-6);g.quadraticCurveTo(6,0,3,6);g.stroke()}
- else{g.rotate(-.5);g.fillStyle='#ffe9cc';g.beginPath();g.rect(-14,-6,28,12);g.fill();g.stroke();
-  g.fillStyle='#ff8a1f';g.beginPath();g.rect(-5,-6,10,12);g.fill();g.stroke()}
- g.shadowBlur=0;g.rotate(q.k==='cd'?-Math.sin(t*3+q.x)*.3:.5);g.fillStyle='#ffd9b3';g.font='600 11px "Share Tech Mono",monospace';g.textAlign='center';g.fillText('+'+(q.k==='cd'?CANDY_HEAL:BANDAGE_HEAL),0,-15);
- g.restore()};
+const drawTr=(g,q,t,al)=>{g.save();g.globalAlpha=al;g.translate(q.x,q.y);g.shadowColor='#ffcd7d';g.shadowBlur=14;g.strokeStyle='#ffcd7d';g.fillStyle='#ffcd7d';g.lineWidth=2;
+ g.strokeRect(-13,-13,26,26);g.font='20px monospace';g.textAlign='center';g.fillText('+',0,7);g.restore()};
 
 // ---- loot ----
 const cbLoot=(x,y)=>{const L=[],n=Math.random()<.5?1:2;
  for(let i=0;i<n;i++)L.push(['cd',x+R(-36,36),y+R(-36,36)]);
  if(Math.random()<.9)L.push(['g',x+R(-14,14),y+R(-14,14),Math.random()<.85?CGUNS[Math.random()*CGUNS.length|0]:pickGun(false)]);
- else L.push(['bd',x+R(-22,22),y+R(-22,22)]);
+ else L.push(['h',x+R(-22,22),y+R(-22,22)]);
  return L};
-const cbAddLoot=L=>{for(const a of L){if(a[0]==='g')pk.push({x:a[1],y:a[2],k:'g',g:a[3],l:30});else tr.push({x:a[1],y:a[2],k:a[0],l:40,r:16})}};
+const cbAddLoot=L=>{for(const a of L){if(a[0]==='g')pk.push({x:a[1],y:a[2],k:'g',g:a[3],l:30});else if(a[0]==='h')pk.push({x:a[1],y:a[2],k:'h',l:30});else tr.push({x:a[1],y:a[2],k:'cd',l:30,r:16})}};
 
 // ---- damage / breaking ----
 function cbBreak(c){const i=cbx.indexOf(c);if(i<0)return;cbx.splice(i,1);
@@ -1691,7 +1683,7 @@ function cbPost(dt){
   if(!p.ph&&!p.stuck&&!NET.dead)push(p,rc);
   if(!NETC())for(const e of en)if(e.tp!=='dragon')push(e,rc)}
  for(let i=tr.length-1;i>=0;i--){const q=tr[i];q.l-=dt;
-  if(!NET.dead&&p.hp<p.mhp&&Math.hypot(p.x-q.x,p.y-q.y)<p.r+q.r+4){p.hp=Math.min(p.mhp,p.hp+(q.k==='cd'?CANDY_HEAL:BANDAGE_HEAL));q.l=0;
+  if(!NET.dead&&p.hp<p.mhp&&Math.hypot(p.x-q.x,p.y-q.y)<p.r+q.r+4){p.hp=Math.min(p.mhp,p.hp+CANDY_HEAL);q.l=0;
    boom(q.x,q.y,'#7dffb2',10,160);beep(700,.12,'triangle',.06,400);setTimeout(()=>beep(1000,.15,'triangle',.05,300),90)}
   if(q.l<=0)tr.splice(i,1)}
  if(NETH()){cbS-=dt;if(cbS<=0){cbS=.1;bcast({t:'cb',l:cbx.map(c=>[c.id,Math.round(c.x),Math.round(c.y),r1(c.hp),c.mhp])})}}}
@@ -1705,8 +1697,8 @@ const up5=update;update=dt=>{
 // ---- drawing: on the overlay, after the darkness, lit = full colour, unlit = faint outline ----
 const dr2=draw;draw=t=>{dr2(t);if(!HW||S!=='play'||(!cbx.length&&!tr.length))return;
  ox.save();ox.scale(Z,Z);ox.translate(WT[0],WT[1]);
- for(const c of cbx){const sx=(c.x+WT[0])*Z,sy=(c.y+WT[1])*Z;if(sx<-80||sy<-80||sx>vw+80||sy>vh+80)continue;const L=lit(c);drawCr(ox,c,L?1:.32,L)}
- for(const q of tr){if(q.l<5&&(t*8|0)%2)continue;drawTr(ox,q,t,lit(q)?1:.6)}
+ for(const c of cbx){const sx=(c.x+WT[0])*Z,sy=(c.y+WT[1])*Z;if(sx<-80||sy<-80||sx>vw+80||sy>vh+80)continue;if(lit(c))drawCr(ox,c,1,true)}
+ for(const q of tr){if((q.l<5&&(t*8|0)%2)||!lit(q))continue;drawTr(ox,q,t,1)}
  ox.restore()};
 
 // ---- squad play sync ----
@@ -1716,7 +1708,9 @@ const cr0=clientRecv;clientRecv=m=>{
  if(m&&m.t==='cbk'){if(NET.run){boom(m.x,m.y,OR,24,280);boom(m.x,m.y,'#a85a00',16,200);beep(140,.2,'sawtooth',.07,-60);cbAddLoot(m.l)}return}
  cr0(m)};
 
-LOG[0].pts.push('Breakable crates scattered around the arena: they shrink as you shoot them and break open to reveal 1-2 candies (+20 HP) and a gun or bandage');
+LOG[0].pts.push('Breakable crates scattered around the arena: they shrink as you shoot them and break open to reveal 1-2 candies (+20 HP) and a gun or [+] heal pack');
+}
+
 }
 reset();buildHome();requestAnimationFrame(loop);
 })();
